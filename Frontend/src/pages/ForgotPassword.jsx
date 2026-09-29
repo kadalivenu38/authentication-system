@@ -13,18 +13,28 @@ function ForgotPassword() {
     })
     const [otpSentStatus, setOtpSentStatus] = useState(false);
     const [waitStatus, setWaitStatus] = useState(false);
-    const [timer, setTimer] = useState(0);
+    const [expiresAt, setExpiresAt] = useState(null);
+    const [now, setNow] = useState(Date.now());
+
+    const timer = expiresAt
+        ? Math.max(0, Math.ceil((new Date(expiresAt).getTime() - now) / 1000))
+        : 0;
 
     useEffect(() => {
-        let interval = null;
-        if (timer > 0) {
-            interval = setInterval(() => {
-                setTimer(prev => prev - 1);
-            }, 1000);
+        if (!expiresAt) {
+            return undefined;
         }
 
+        const interval = setInterval(() => {
+            if (Date.now() >= new Date(expiresAt).getTime()) {
+                setExpiresAt(null);
+            } else {
+                setNow(Date.now());
+            }
+        }, 1000);
+
         return () => clearInterval(interval);
-    }, [timer]);
+    }, [expiresAt]);
 
     function updateFieldData(fieldName, newValue) {
         setUserDetails(prevDetails => ({
@@ -43,7 +53,7 @@ function ForgotPassword() {
             const res = await axiosClient.post('/user/forgot-password/', { email: userDetails.email });
             if (res.status === 200) {
                 setOtpSentStatus(true);
-                setTimer(60);
+                setExpiresAt(res.data.expiresAt);
                 alert(res.data.message);
                 updateFieldData('otp', "");
             }

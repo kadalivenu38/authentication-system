@@ -17,7 +17,7 @@ export const otpSending = async (email, otp)=>{
         from: process.env.App_Email,
         to: email,
         subject: 'OTP code for Forgot-password verification: ',
-        html: `<h3>Your OTP Code: ${otp}</h3> <p>It is valid for 1 minute only!</p>`
+        html: `<h3>Your OTP Code: ${otp}</h3> <p>It is valid for 1 minute 30 seconds only!</p>`
     });
 }
 

@@ -19,7 +19,6 @@ const Register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const newUser = await User.create({
       name,
       email,
@@ -71,7 +70,6 @@ const Login = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
-
   try {
     if (!email) {
       return res.status(400).json({ message: "Email is required." });
@@ -87,16 +85,18 @@ const forgotPassword = async (req, res) => {
     }
 
     const otp = generateOtp();
-
+    const otpExpiresAt = new Date(Date.now() + 90 * 1000);
     user.otp = otp;
-    user.otpExpires = Date.now() + 60 * 1000;
+    user.otpExpires = otpExpiresAt;
     user.otpVerified = false;
-
     await user.save();
 
     await otpSending(email, otp);
 
-    return res.status(200).json({ message: "OTP sent successfully." });
+    return res.status(200).json({
+      message: "OTP sent successfully.",
+      expiresAt: otpExpiresAt.toISOString(),
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Internal Server Error." });
@@ -105,7 +105,6 @@ const forgotPassword = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
-
   try {
     if (!email || !otp) {
       return res.status(400).json({ message: "Email and OTP are required." });
@@ -113,17 +112,14 @@ const verifyOtp = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "User not found." });
+      return res.status(404).json({ message: "No account found on this email!" });
     }
-
     if (!user.otp || !user.otpExpires) {
       return res.status(400).json({ message: "No OTP request found." });
     }
-
-    if (Date.now() > user.otpExpires) {
-      return res.status(400).json({ message: "OTP expired." });
+    if (Date.now() >= user.otpExpires.getTime()) {
+      return res.status(400).json({ message: "OTP expired.", time: Date.now() });
     }
-
     if (otp !== user.otp) {
       return res.status(401).json({ message: "Invalid OTP." });
     }
@@ -146,34 +142,25 @@ const resetPassword = async (req, res) => {
   const { email, newPassword, confirmPassword } = req.body;
 
   try {
-    if (!email) {
-      return res.status(403).json({message: "Email verification required before resetting password."});
-    }
-
     if (!email || !newPassword || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required." });
     }
-
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match." });
     }
-
     if (newPassword.length < 6) {
       return res.status(400).json({message: "Password must be at least 6 characters long."});
     }
 
     const user = await User.findOne({ email });
-
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
-
     if (!user.otpVerified) {
       return res.status(403).json({message: "OTP verification required before resetting password."});
     }
 
     const isSamePassword = await bcrypt.compare(newPassword, user.password);
-
     if (isSamePassword) {
       return res.status(400).json({message: "New password cannot be same as old password."});
     }

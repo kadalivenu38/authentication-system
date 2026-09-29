@@ -177,16 +177,22 @@ const resetPassword = async (req, res) => {
 };
 
 const resetCancel = async (req, res)=>{
-    const {email} = req.body;
-    if(email){
-        const user = await User.findOne({email});
-        if(user){
-            user.otp = null;
-            user.otpExpires = null;
-            user.otpVerified = false;
-            await user.save();
+  const { email } = req.body;
+  try {
+    if (email) {
+      const user = await User.findOne({ email });
+      if (user) {
+        user.otp = null;
+        user.otpExpires = null;
+        user.otpVerified = false;
+        await user.save();
         }
     }
-}
+    return res.status(200).json({ message: "Password reset cancelled." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Unable to cancel password reset." });
+  }
+};
 
 export { Register, Login, forgotPassword, verifyOtp, resetPassword, resetCancel };

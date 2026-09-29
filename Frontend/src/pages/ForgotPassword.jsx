@@ -74,19 +74,13 @@ function ForgotPassword() {
             const res = await axiosClient.post('/user/verify-otp', userDetails);
             if (res.status === 200) {
                 alert(res.data.message);
-                localStorage.setItem('email', userDetails.email);
+                sessionStorage.setItem('resetEmail', userDetails.email);
                 navigate('/reset-password');
             }
         } catch (err) {
             if (err.response && err.response.data && err.response.data.message) {
                 alert(err.response.data.message);
             }
-        }
-    }
-
-    function cancelFun() {
-        if (userDetails.email) {
-            axiosClient.post('/user/reset-cancel', { email: userDetails.email });
         }
     }
 
@@ -128,9 +122,6 @@ function ForgotPassword() {
                                 <Button variant="primary" type="button" onClick={sendOtp}>Send Otp</Button>
                             )}
                         </Form>
-                        <p className='mt-2'>
-                            Not needed. <Link to={'/login'} onClick={cancelFun}>Cancel</Link>
-                        </p>
                     </div>
                 </div>
             </div>

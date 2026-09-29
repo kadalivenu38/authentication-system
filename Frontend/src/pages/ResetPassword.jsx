@@ -48,33 +48,44 @@ function ResetPassword() {
             return;
         }
         try {
-            userDetails.email = localStorage.getItem('email');
-            const res = await axiosClient.post('/user/reset-password', userDetails);
+            const resetEmail = sessionStorage.getItem('resetEmail');
+            const res = await axiosClient.post('/user/reset-password', {
+                ...userDetails,
+                email: resetEmail
+            });
             if (res.status === 200) {
                 alert(res.data.message);
-                localStorage.removeItem('email');
+                sessionStorage.removeItem('resetEmail');
                 navigate('/login');
             }
         } catch (err) {
             if (err.response && err.response.data && err.response.data.message) {
                 alert(err.response.data.message);
-                if (err.status === 403) {
-                    navigate('/forgot-password');
+                if (err.response.status === 403) {
+                    sessionStorage.removeItem('resetEmail');
+                    navigate('/login');
                 }
             }
         }
     }
 
-    function cancelFun() {
-        if (userDetails.email) {
-            localStorage.removeItem('email');
-            axiosClient.post('/user/reset-cancel', { email: userDetails.email });
+    async function cancelFun() {
+        const email = sessionStorage.getItem('resetEmail');
+        try {
+            if (email) {
+                await axiosClient.post('/user/reset-cancel', { email });
+            }
+        } catch (err) {
+            console.error('Unable to cancel password reset:', err);
+        } finally {
+            sessionStorage.removeItem('resetEmail');
+            navigate('/login');
         }
     }
 
     return (
         <>
-            {localStorage.getItem('email') ?
+            {sessionStorage.getItem('resetEmail') ?
                 <div className="d-flex" style={{ height: '100vh', backgroundColor: '#FFFFFF' }}>
                     <div className="left-half w-50 d-flex align-items-center" style={{ maxHeight: '100%', overflow: 'hidden' }}>
                         <img src="/auth3.jpg" alt="auth-system" style={{ width: '80%', marginLeft: '10%' }} />
